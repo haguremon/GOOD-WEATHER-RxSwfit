@@ -54,14 +54,13 @@ class ViewController: UIViewController {
         let resource = Resource<WeatherResult>(url: url)
        let search = URLRequest.load(resource: resource)
             .observe(on: MainScheduler.instance)//DispatchQueueの代わりにできる通信が完了して切り替える必要があるため
-            .catchAndReturn(WeatherResult.empty)//エラー処理
-        //bind(to:)を使ってデータをバインディングさせてUIに表示させる
+            .asDriver(onErrorJustReturn: WeatherResult.empty)
         search.map { "\($0.main.temp) ℉"}
-        .bind(to: self.temperatureLabel.rx.text)
+        .drive(self.temperatureLabel.rx.text)
         .disposed(by: disposeBag)
         
         search.map {"\($0.main.humidity) 💧"}
-        .bind(to: self.hnmidityLabel.rx.text)
+        .drive(self.hnmidityLabel.rx.text)
         .disposed(by: disposeBag)
         
     }
