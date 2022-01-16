@@ -52,14 +52,22 @@ class ViewController: UIViewController {
        guard let cityEncoded = city.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed),
              let url = URL.urlForWeatherAPI(city: cityEncoded) else { return }
         let resource = Resource<WeatherResult>(url: url)
-       let search = URLRequest.load(resource: resource)
-            .observe(on: MainScheduler.instance)//DispatchQueueの代わりにできる通信が完了して切り替える必要があるため
-            .asDriver(onErrorJustReturn: WeatherResult.empty)
+//       let search = URLRequest.load(resource: resource)
+//            .observe(on: MainScheduler.instance)//DispatchQueueの代わりにできる通信が完了して切り替える必要があるため
+//            .asDriver(onErrorJustReturn: WeatherResult.empty)
+        let search = URLRequest.load(resource: resource)
+            .retry(3)//指定した試行回数で戻してそれ以上だと何もしないネットワークの接続によってできる
+            .observe(on: MainScheduler.instance).catch { error in
+                print(error.localizedDescription)//The operation couldn’t be completed. (RxCocoa.RxCocoaURLError error 1.)
+                return Observable.just(WeatherResult.empty)
+            }.asDriver(onErrorJustReturn: WeatherResult.empty)
+        
         search.map { "\($0.main.temp) ℉"}
         .drive(self.temperatureLabel.rx.text)
         .disposed(by: disposeBag)
         
         search.map {"\($0.main.humidity) 💧"}
+        
         .drive(self.hnmidityLabel.rx.text)
         .disposed(by: disposeBag)
         
